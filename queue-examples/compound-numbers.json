@@ -1,0 +1,104 @@
+{
+ "slug": "compound-numbers",
+ "title": "Compound Interest by the Numbers: $1,000 Becomes $7,612",
+ "description": "At 7 percent a year for 30 years, 1,000 dollars grows to about 7,612 dollars. The maths: 1,000 x 1.07^30 = 7,612.\n\nGraphics and narration were generated with AI. The maths is shown so you can check it yourself.\n\n#money #investing #maths #shorts",
+ "scenes": [
+  {
+   "vo": "Here is why starting early matters so much. Put one thousand dollars away at seven percent a year.",
+   "bg": {
+    "type": "plain",
+    "c1": [
+     6,
+     30,
+     30
+    ],
+    "c2": [
+     10,
+     80,
+     70
+    ]
+   },
+   "big": "$1,000",
+   "label": "start",
+   "sub": "7% a year, no extra deposits",
+   "color": [
+    110,
+    220,
+    160
+   ]
+  },
+  {
+   "vo": "After ten years it is about one thousand nine hundred sixty seven dollars.",
+   "bg": {
+    "type": "plain",
+    "c1": [
+     6,
+     30,
+     30
+    ],
+    "c2": [
+     10,
+     80,
+     70
+    ]
+   },
+   "big": "$1,967",
+   "label": "after 10 years",
+   "sub": "1,000 x 1.07^10",
+   "color": [
+    255,
+    210,
+    90
+   ]
+  },
+  {
+   "vo": "After thirty years, the same money is worth about seven thousand six hundred twelve dollars. The last ten years add more than the first twenty.",
+   "bg": {
+    "type": "plain",
+    "c1": [
+     6,
+     30,
+     30
+    ],
+    "c2": [
+     10,
+     80,
+     70
+    ]
+   },
+   "big": "$7,612",
+   "label": "after 30 years",
+   "sub": "1,000 x 1.07^30",
+   "color": [
+    255,
+    150,
+    90
+   ]
+  },
+  {
+   "vo": "Follow for more of the numbers behind money and maths.",
+   "bg": {
+    "type": "plain",
+    "c1": [
+     10,
+     8,
+     40
+    ],
+    "c2": [
+     70,
+     20,
+     90
+    ]
+   },
+   "big": "",
+   "label": "",
+   "sub": "Your Channel",
+   "color": [
+    255,
+    255,
+    255
+   ]
+  }
+ ],
+ "kind": "short"
+}

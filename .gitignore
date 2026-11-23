@@ -1,0 +1,7 @@
+out/
+work/
+state.json
+*.mp4
+__pycache__/
+queue/
+.env

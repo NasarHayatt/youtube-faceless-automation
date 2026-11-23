@@ -1,0 +1,72 @@
+{
+ "slug": "parker-numbers",
+ "title": "Parker Solar Probe by the Numbers: The Fastest Thing Humans Ever Built",
+ "description": "Parker Solar Probe passed the Sun at about 692,000 km/h and about 6.1 million km from its surface.\n\nImages: NASA. Narration and graphics were generated with AI. Figures are from public sources and rounded.\n\n#space #nasa #sun #shorts",
+ "scenes": [
+  {
+   "vo": "The fastest object humans have ever built is a probe that flies into the Sun's atmosphere.",
+   "bg": {
+    "type": "nasa_img",
+    "query": "Parker Solar Probe",
+    "skip": 0
+   },
+   "big": "692,000 km/h",
+   "label": "top speed",
+   "sub": "Parker Solar Probe, December 2024",
+   "color": [
+    255,
+    170,
+    60
+   ]
+  },
+  {
+   "vo": "At its closest, it passed just six point one million kilometers from the solar surface.",
+   "bg": {
+    "type": "nasa_img",
+    "query": "solar corona eclipse",
+    "skip": 1
+   },
+   "big": "6.1M km",
+   "label": "closest approach",
+   "sub": "Inside the Sun's atmosphere",
+   "color": [
+    255,
+    210,
+    90
+   ]
+  },
+  {
+   "vo": "Its heat shield, only eleven centimeters thick, faces temperatures near one thousand four hundred degrees Celsius.",
+   "bg": {
+    "type": "nasa_img",
+    "query": "Parker Solar Probe heat shield",
+    "skip": 0
+   },
+   "big": "1,400 C",
+   "label": "outside the heat shield",
+   "sub": "Yet the instruments stay near room temperature",
+   "color": [
+    255,
+    120,
+    90
+   ]
+  },
+  {
+   "vo": "Follow for more of the numbers behind the Sun.",
+   "bg": {
+    "type": "nasa_img",
+    "query": "nebula hubble",
+    "skip": 2
+   },
+   "big": "",
+   "label": "",
+   "sub": "Your Channel",
+   "color": [
+    255,
+    255,
+    255
+   ]
+  }
+ ],
+ "kind": "short"
+}

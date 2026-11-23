@@ -1,0 +1,367 @@
+[
+ {
+  "name": "Daily faceless video pipeline",
+  "nodes": [
+   {
+    "id": "696946c1-08ea-4eba-b422-713ae70b4af0",
+    "name": "Render trigger 02:00",
+    "type": "n8n-nodes-base.scheduleTrigger",
+    "typeVersion": 1.2,
+    "position": [
+     0,
+     0
+    ],
+    "parameters": {
+     "rule": {
+      "interval": [
+       {
+        "field": "cronExpression",
+        "expression": "0 2 * * *"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "768afc23-8032-4c67-92c7-3dda4cc19ae9",
+    "name": "Render today's batch",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     240,
+     0
+    ],
+    "parameters": {
+     "method": "POST",
+     "url": "http://host.docker.internal:8300/render?n=4",
+     "options": {
+      "timeout": 30000
+     }
+    }
+   },
+   {
+    "id": "7e59440e-9c62-4d14-b9d9-4da54736ed56",
+    "name": "Upload trigger 09:00",
+    "type": "n8n-nodes-base.scheduleTrigger",
+    "typeVersion": 1.2,
+    "position": [
+     0,
+     300
+    ],
+    "parameters": {
+     "rule": {
+      "interval": [
+       {
+        "field": "cronExpression",
+        "expression": "0 9 * * *"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "388eefd8-0361-4709-85d5-989aeb80e6e2",
+    "name": "Get rendered videos",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     240,
+     300
+    ],
+    "parameters": {
+     "method": "GET",
+     "url": "http://host.docker.internal:8300/pending",
+     "options": {
+      "timeout": 30000
+     }
+    }
+   },
+   {
+    "id": "31446948-f5e4-43d9-8ee0-4201b9713228",
+    "name": "Split videos",
+    "type": "n8n-nodes-base.splitOut",
+    "typeVersion": 1,
+    "position": [
+     480,
+     300
+    ],
+    "parameters": {
+     "fieldToSplitOut": "items",
+     "options": {}
+    }
+   },
+   {
+    "id": "bc20dc6f-ca46-4857-9a7f-667c842b7c2c",
+    "name": "One at a time",
+    "type": "n8n-nodes-base.splitInBatches",
+    "typeVersion": 3,
+    "position": [
+     720,
+     300
+    ],
+    "parameters": {
+     "batchSize": 1,
+     "options": {}
+    }
+   },
+   {
+    "id": "5f65c126-03db-442e-b59e-cf7251d99ff4",
+    "name": "Download video file",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     960,
+     300
+    ],
+    "parameters": {
+     "method": "GET",
+     "url": "=http://host.docker.internal:8300/file/{{ $json.slug }}",
+     "options": {
+      "response": {
+       "response": {
+        "responseFormat": "file",
+        "outputPropertyName": "data"
+       }
+      },
+      "timeout": 300000
+     }
+    }
+   },
+   {
+    "id": "22d953e6-ddae-42fe-beea-c1ef68e64ef7",
+    "name": "Upload to YouTube",
+    "type": "n8n-nodes-base.youTube",
+    "typeVersion": 1,
+    "position": [
+     1200,
+     300
+    ],
+    "parameters": {
+     "resource": "video",
+     "operation": "upload",
+     "title": "={{ $('One at a time').item.json.title }}",
+     "regionCode": "US",
+     "categoryId": "27",
+     "binaryProperty": "data",
+     "options": {
+      "description": "={{ $('One at a time').item.json.description }}",
+      "privacyStatus": "public",
+      "selfDeclaredMadeForKids": "={{ $('One at a time').item.json.made_for_kids }}",
+      "defaultLanguage": "en",
+      "notifySubscribers": false
+     }
+    },
+    "credentials": {
+     "youTubeOAuth2Api": {
+      "id": "YOUR_YOUTUBE_CREDENTIAL_ID",
+      "name": "YouTube account"
+     }
+    }
+   },
+   {
+    "id": "2307844e-36cb-4c55-900b-5638f0760bd6",
+    "name": "Declare AI-generated media",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     1440,
+     300
+    ],
+    "parameters": {
+     "method": "PUT",
+     "url": "https://www.googleapis.com/youtube/v3/videos?part=status",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "youTubeOAuth2Api",
+     "sendBody": true,
+     "specifyBody": "json",
+     "jsonBody": "={\"id\": \"{{ $json.id }}\", \"status\": {\"privacyStatus\": \"public\", \"selfDeclaredMadeForKids\": {{ $('One at a time').item.json.made_for_kids }}, \"containsSyntheticMedia\": true}}",
+     "options": {}
+    },
+    "credentials": {
+     "youTubeOAuth2Api": {
+      "id": "YOUR_YOUTUBE_CREDENTIAL_ID",
+      "name": "YouTube account"
+     }
+    }
+   },
+   {
+    "id": "3e0daca8-a7c7-47ea-966e-46bc6e727638",
+    "name": "Mark uploaded",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     1680,
+     300
+    ],
+    "parameters": {
+     "method": "POST",
+     "url": "=http://host.docker.internal:8300/uploaded/{{ $('One at a time').item.json.slug }}",
+     "options": {}
+    }
+   },
+   {
+    "id": "2fb28386-26a2-4ff8-b014-9d3b3a68e67f",
+    "name": "Wait 40 min between videos",
+    "type": "n8n-nodes-base.wait",
+    "typeVersion": 1.1,
+    "position": [
+     1920,
+     300
+    ],
+    "parameters": {
+     "resume": "timeInterval",
+     "amount": 40,
+     "unit": "minutes"
+    }
+   },
+   {
+    "id": "fc2ebea3-8098-4802-ba6e-6efe76251396",
+    "name": "Email daily summary",
+    "type": "n8n-nodes-base.emailSend",
+    "typeVersion": 2.1,
+    "position": [
+     960,
+     520
+    ],
+    "parameters": {
+     "fromEmail": "you@example.com",
+     "toEmail": "you@example.com",
+     "subject": "={{ 'Daily videos: ' + $('Upload to YouTube').all().length + ' videos uploaded today' }}",
+     "emailFormat": "text",
+     "text": "={{ 'Uploaded today:\n\n' + $('Upload to YouTube').all().map(i => (i.json.snippet ? i.json.snippet.title : 'video') + '\nhttps://youtu.be/' + i.json.id).join('\n\n') + '\n\nQueue remaining: ' + $('Get rendered videos').first().json.queue_dir_remaining }}",
+     "options": {}
+    },
+    "credentials": {
+     "smtp": {
+      "id": "YOUR_SMTP_CREDENTIAL_ID",
+      "name": "SMTP account"
+     }
+    }
+   }
+  ],
+  "connections": {
+   "Render trigger 02:00": {
+    "main": [
+     [
+      {
+       "node": "Render today's batch",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Upload trigger 09:00": {
+    "main": [
+     [
+      {
+       "node": "Get rendered videos",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Get rendered videos": {
+    "main": [
+     [
+      {
+       "node": "Split videos",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Split videos": {
+    "main": [
+     [
+      {
+       "node": "One at a time",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "One at a time": {
+    "main": [
+     [
+      {
+       "node": "Email daily summary",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Download video file",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Download video file": {
+    "main": [
+     [
+      {
+       "node": "Upload to YouTube",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Upload to YouTube": {
+    "main": [
+     [
+      {
+       "node": "Declare AI-generated media",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Declare AI-generated media": {
+    "main": [
+     [
+      {
+       "node": "Mark uploaded",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Mark uploaded": {
+    "main": [
+     [
+      {
+       "node": "Wait 40 min between videos",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Wait 40 min between videos": {
+    "main": [
+     [
+      {
+       "node": "One at a time",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1"
+  },
+  "active": false,
+  "id": "ytdailyvideos01"
+ }
+]

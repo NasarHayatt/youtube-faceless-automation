@@ -1,0 +1,500 @@
+[
+ {
+  "name": "Daily trends and scripts",
+  "nodes": [
+   {
+    "id": "1a7ebc0d-dc8f-42a9-80c4-1b6344ff8e77",
+    "name": "Research trigger 01:00",
+    "type": "n8n-nodes-base.scheduleTrigger",
+    "typeVersion": 1.2,
+    "position": [
+     0,
+     0
+    ],
+    "parameters": {
+     "rule": {
+      "interval": [
+       {
+        "field": "cronExpression",
+        "expression": "0 1 * * *"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "b9ea1ea2-cc05-405b-8d5f-58c371e0c75f",
+    "name": "Pick niche",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     240,
+     0
+    ],
+    "parameters": {
+     "jsCode": "\nconst niches = [\n  {name:'technology', kids:false, brief:'technology, software, AI, gadgets, internet and how modern tech works'},\n  {name:'kids learning', kids:true, brief:'fun, safe learning topics for children aged 6 to 12: animals, nature, space, human body, simple science, how things work'},\n  {name:'science and nature', kids:false, brief:'science, nature, animals, earth, weather and the human body'},\n  {name:'technology', kids:false, brief:'technology, software, AI, gadgets, internet and how modern tech works'},\n  {name:'kids learning', kids:true, brief:'fun, safe learning topics for children aged 6 to 12: animals, nature, space, human body, simple science, how things work'},\n  {name:'history and explained', kids:false, brief:'history, geography, culture and everyday things explained'},\n  {name:'trending explained', kids:false, brief:'the most interesting factual topics people are curious about today'}\n];\nconst d = new Date();\nconst n = niches[d.getDay()];\nconst y = new Date(d.getTime() - 86400000);\nreturn [{json:{niche:n.name, kids:n.kids, brief:n.brief, date:d.toISOString().slice(0,10), y:y.getUTCFullYear(), m:String(y.getUTCMonth()+1).padStart(2,'0'), d:String(y.getUTCDate()).padStart(2,'0')}}];\n"
+    }
+   },
+   {
+    "id": "f5804e30-5704-46ed-b371-e0b47a104212",
+    "name": "Wikipedia most read",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     480,
+     -160
+    ],
+    "parameters": {
+     "method": "GET",
+     "url": "=https://en.wikipedia.org/api/rest_v1/feed/featured/{{ $json.y }}/{{ $json.m }}/{{ $json.d }}",
+     "options": {
+      "timeout": 30000
+     },
+     "sendHeaders": true,
+     "headerParameters": {
+      "parameters": [
+       {
+        "name": "User-Agent",
+        "value": "Mozilla/5.0 (compatible; TrendReader/1.0)"
+       }
+      ]
+     }
+    },
+    "continueOnFail": true
+   },
+   {
+    "id": "a49f1837-2428-4ab4-959a-22309aa62d47",
+    "name": "Hacker News front page",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     480,
+     0
+    ],
+    "parameters": {
+     "method": "GET",
+     "url": "https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=30",
+     "options": {
+      "timeout": 30000
+     },
+     "sendHeaders": true,
+     "headerParameters": {
+      "parameters": [
+       {
+        "name": "User-Agent",
+        "value": "Mozilla/5.0 (compatible; TrendReader/1.0)"
+       }
+      ]
+     }
+    },
+    "continueOnFail": true
+   },
+   {
+    "id": "28198f79-077b-47cd-91e3-062329e35258",
+    "name": "Google Trends",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     480,
+     160
+    ],
+    "parameters": {
+     "method": "GET",
+     "url": "https://trends.google.com/trending/rss?geo=US",
+     "options": {
+      "timeout": 30000,
+      "response": {
+       "response": {
+        "responseFormat": "text"
+       }
+      }
+     },
+     "sendHeaders": true,
+     "headerParameters": {
+      "parameters": [
+       {
+        "name": "User-Agent",
+        "value": "Mozilla/5.0 (compatible; TrendReader/1.0)"
+       }
+      ]
+     }
+    },
+    "continueOnFail": true
+   },
+   {
+    "id": "640e6b0a-b4e5-4188-a938-e2f69844a902",
+    "name": "Build candidate list",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     720,
+     0
+    ],
+    "parameters": {
+     "jsCode": "\nconst niche = $('Pick niche').first().json;\nlet wikiList = [];\ntry { wikiList = ($('Wikipedia most read').first().json.mostread.articles || []).slice(0,40).map(a => a.normalizedtitle || a.title); } catch(e) {}\nlet hnList = [];\ntry { hnList = ($('Hacker News front page').first().json.hits || []).map(h => h.title).slice(0,30); } catch(e) {}\nlet gtList = [];\ntry { const x = String($('Google Trends').first().json.data || $('Google Trends').first().json); gtList = [...x.matchAll(/<title>([^<]+)<\\/title>/g)].map(m=>m[1]).slice(1,25); } catch(e) {}\nconst kidsPool = ['Octopus','Giant panda','Blue whale','Honey bee','Emperor penguin','Monarch butterfly','Elephant','Giraffe','Chameleon','Dolphin','Sloth','Koala','Kangaroo','Tyrannosaurus','Triceratops','Volcano','Rainbow','Thunderstorm','Tornado','Moon','Mars','Saturn','Jupiter','Solar System','Sun','Black hole','Milky Way','Human heart','Human brain','Skeleton','Tooth','Rainforest','Coral reef','Great Barrier Reef','Antarctica','Sahara','Mount Everest','Amazon River','Niagara Falls','Earthquake','Glacier','Tide','Aurora','Bat','Owl','Eagle','Hummingbird','Spider','Ant','Shark','Sea turtle','Seahorse','Jellyfish','Camel','Polar bear','Cheetah','Lion','Tiger','Gorilla','Rocket','Airplane','Train','Bicycle','Telescope','Magnet','Electricity','Gravity','Photosynthesis','Water cycle'];\nconst pool = kidsPool.sort(() => Math.random() - 0.5).slice(0, 15);\nreturn [{json:{...niche, wikiList: niche.kids ? [] : wikiList, hnList: niche.kids ? [] : hnList, gtList: niche.kids ? [] : gtList, kidsPool: pool}}];\n"
+    }
+   },
+   {
+    "id": "80a9cac6-8480-4260-b5db-0767241715e8",
+    "name": "Gemini: choose 6 topics (prompt)",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     840,
+     160
+    ],
+    "parameters": {
+     "mode": "runOnceForEachItem",
+     "jsCode": "const prompt = 'You plan a daily educational YouTube channel. Today\\'s niche is: ' + $json.niche + ' (' + $json.brief + ').\\nCandidate trending items:\\nWikipedia most read: ' + JSON.stringify($json.wikiList) + '\\nTech news headlines: ' + JSON.stringify($json.hnList) + '\\nGoogle Trends: ' + JSON.stringify($json.gtList) + '\\n\\nChoose exactly 6 DIFFERENT topics that fit the niche, are factual and safe for a general audience, and each has an English Wikipedia article. Prefer trending items when they fit; otherwise choose evergreen topics of high interest. Avoid: politics, elections, war, violence, crime, tragedies, deaths, celebrity gossip, medical advice, adult content, living private people. ' + ($json.kids ? 'This is for children aged 6 to 12. Choose ONLY from this evergreen list of kid-friendly topics: ' + JSON.stringify($json.kidsPool) + '. Never choose anything else. ' : '') + 'Return JSON only: {\"topics\":[{\"wikipedia_title\":\"exact English Wikipedia article title\",\"angle\":\"one sentence on the most interesting angle\",\"format\":\"wide\"|\"short\"}]} with 3 wide and 3 short.';\nreturn {json: {body: {contents: [{parts: [{text: prompt}]}], generationConfig: {responseMimeType: 'application/json', temperature: 0.5}}}};"
+    }
+   },
+   {
+    "id": "638dcb75-ec50-42fb-b63d-4434004f8c59",
+    "name": "Gemini: choose 6 topics",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     960,
+     0
+    ],
+    "parameters": {
+     "method": "POST",
+     "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googlePalmApi",
+     "sendBody": true,
+     "specifyBody": "json",
+     "jsonBody": "={{ JSON.stringify($json.body) }}",
+     "options": {
+      "timeout": 90000
+     }
+    },
+    "credentials": {
+     "googlePalmApi": {
+      "id": "YOUR_GEMINI_CREDENTIAL_ID",
+      "name": "Google Gemini(PaLM) Api account"
+     }
+    },
+    "continueOnFail": true,
+    "retryOnFail": true,
+    "maxTries": 4,
+    "waitBetweenTries": 10000
+   },
+   {
+    "id": "cd52e2f2-9179-4821-9e7b-858b5c57d69c",
+    "name": "Split topics",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     1200,
+     0
+    ],
+    "parameters": {
+     "jsCode": "\nconst niche = $('Build candidate list').first().json;\nconst txt = $input.first().json.candidates[0].content.parts.map(p=>p.text||'').join('');\nlet topics = [];\ntry { topics = JSON.parse(txt).topics || []; } catch(e) {}\nreturn topics.slice(0,6).map((t,i) => ({json:{...t, idx:i, niche:niche.niche, kids:niche.kids, date:niche.date}}));\n"
+    }
+   },
+   {
+    "id": "b6acb703-2c28-4f15-9ac9-554bc0b2b561",
+    "name": "Wikipedia extract",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     1440,
+     0
+    ],
+    "parameters": {
+     "method": "GET",
+     "url": "=https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&exchars=4000&redirects=1&format=json&titles={{ encodeURIComponent($json.wikipedia_title) }}",
+     "options": {
+      "timeout": 30000
+     },
+     "sendHeaders": true,
+     "headerParameters": {
+      "parameters": [
+       {
+        "name": "User-Agent",
+        "value": "Mozilla/5.0 (compatible; TrendReader/1.0)"
+       }
+      ]
+     }
+    },
+    "continueOnFail": true
+   },
+   {
+    "id": "843d5755-b7fc-4193-879d-fff950ff883c",
+    "name": "Attach extract",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     1680,
+     0
+    ],
+    "parameters": {
+     "jsCode": "\nconst tops = $('Split topics').all();\nreturn $input.all().map((it, i) => {\n  let text = '';\n  try { text = Object.values(it.json.query.pages)[0].extract || ''; } catch(e) {}\n  return {json: {...tops[i].json, extract: text}};\n});\n"
+    }
+   },
+   {
+    "id": "53d154b1-acf5-4d12-b0b0-89a8823cd9af",
+    "name": "Gemini: write script (prompt)",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     1800,
+     160
+    ],
+    "parameters": {
+     "mode": "runOnceForEachItem",
+     "jsCode": "const prompt = 'Write a script for a faceless educational YouTube video using ONLY facts stated in the SOURCE TEXT below. Topic: ' + $json.wikipedia_title + '. Angle: ' + $json.angle + '. Niche: ' + $json.niche + '. Format: ' + ($json.format === 'wide' ? 'horizontal video, 7 scenes, about 35 seconds total (each voice-over line 12 to 18 words)' : 'vertical Short, 4 scenes, about 25 seconds total (each voice-over line 12 to 18 words)') + '. ' + ($json.kids ? 'Audience: children aged 6 to 12. Use simple friendly words, a fun tone, no scary content. ' : 'Audience: curious general viewers. ') + '\\n\\nRules: every fact must be supported by a sentence in SOURCE TEXT. Scene 1 is a strong hook. The last scene is a short call to subscribe to the channel. Write numbers as words inside \"vo\" (for speech) but use digits in \"big\". \"big\" is one short striking number or word (max 10 characters) or empty. \"label\" is 2 to 5 words explaining big. \"sub\" is a short caption (max 8 words). \"image_prompt\" describes a vivid, safe, realistic illustration for the scene with no text and no real people. \"evidence\" is an EXACT sentence copied from SOURCE TEXT that supports the scene, or empty for the hook and the subscribe scene. \"numbers\" lists every number used in that scene (in vo or big) written as digits exactly as they appear in the evidence sentence, for example [\"29\",\"75\"], or an empty list if none. Never use a number that is not in the evidence.\\nReturn JSON only: {\"title\":\"under 70 characters, engaging, no clickbait lies\",\"description\":\"2 sentences\",\"tags\":[\"5 short tags\"],\"scenes\":[{\"vo\":\"\",\"big\":\"\",\"label\":\"\",\"sub\":\"\",\"image_prompt\":\"\",\"evidence\":\"\",\"numbers\":[]}]}\\n\\nSOURCE TEXT:\\n' + $json.extract;\nreturn {json: {body: {contents: [{parts: [{text: prompt}]}], generationConfig: {responseMimeType: 'application/json', temperature: 0.5}}}};"
+    }
+   },
+   {
+    "id": "ac40c0fb-4440-49b9-a03a-d2c2c16397f7",
+    "name": "Gemini: write script",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     1920,
+     0
+    ],
+    "parameters": {
+     "method": "POST",
+     "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googlePalmApi",
+     "sendBody": true,
+     "specifyBody": "json",
+     "jsonBody": "={{ JSON.stringify($json.body) }}",
+     "options": {
+      "timeout": 90000
+     }
+    },
+    "credentials": {
+     "googlePalmApi": {
+      "id": "YOUR_GEMINI_CREDENTIAL_ID",
+      "name": "Google Gemini(PaLM) Api account"
+     }
+    },
+    "continueOnFail": true,
+    "retryOnFail": true,
+    "maxTries": 4,
+    "waitBetweenTries": 10000
+   },
+   {
+    "id": "5d119b38-d95f-4249-a0c1-c0a5375103db",
+    "name": "Validate and build spec",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     2160,
+     0
+    ],
+    "parameters": {
+     "jsCode": "\nconst atts = $('Attach extract').all();\nconst results = [];\n$input.all().forEach((inp, idx) => {\nconst t = atts[idx].json;\nconst src = (t.extract || '').toLowerCase().replace(/\\s+/g,' ');\nlet s = {};\ntry { s = JSON.parse(inp.json.candidates[0].content.parts.map(p=>p.text||'').join('')); } catch(e) { return; }\nconst scenes = (s.scenes || []);\nconst wide = t.format === 'wide';\nconst bad = /(kill|murder|suicide|nude|sex|porn|terror|massacre)/i;\nlet verified = 0, factual = 0;\nconst out = [];\nconst palette = [[255,210,90],[120,200,255],[255,150,150],[110,220,160],[200,150,255],[255,170,60],[255,110,110]];\nscenes.forEach((sc, i) => {\n  if (bad.test(sc.vo || '')) return;\n  const ev = (sc.evidence || '').toLowerCase().replace(/\\s+/g,' ').trim();\n  const isFact = ev.length > 0;\n  if (isFact) {\n    factual++;\n    if (!src.includes(ev.slice(0, 80))) return;\n    const nums = (sc.numbers || []).map(x => String(x).replace(/,/g,''));\n    const evn = ev.replace(/,/g,'');\n    if (nums.some(x => !evn.includes(x))) return;\n    const bigd = (sc.big || '').replace(/[^0-9.]/g,'');\n    if (bigd && !evn.includes(bigd)) return;\n    verified++;\n  }\n  out.push({vo: sc.vo, bg: {type:'ai_api', prompt: sc.image_prompt || t.wikipedia_title, c1:[10,8,40], c2:[60,25,100]}, big: (sc.big||'').slice(0,10), label: sc.label||'', sub: sc.sub||'', color: palette[i % palette.length]});\n});\nconst minScenes = wide ? 5 : 3;\nif (out.length < minScenes || verified < 2 || !s.title) return;\nconst slug = t.date + '-' + (wide ? 'v' : 's') + t.idx + '-' + t.wikipedia_title.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,40);\nconst tags = (s.tags || []).map(x => String(x).replace(/[^a-zA-Z0-9]/g,'')).filter(Boolean).slice(0,5);\nconst desc = (s.description || '') + '\\n\\nSource: Wikipedia, article \"' + t.wikipedia_title + '\" (CC BY-SA). Images and narration were generated with AI. Facts were checked against the source text but may be simplified.\\n\\n' + tags.map(x => '#' + x).join(' ') + (wide ? '' : ' #shorts');\nconst spec = {slug, title: String(s.title).slice(0,95), description: desc, scenes: out, kind: wide ? 'video' : 'short', made_for_kids: !!t.kids, niche: t.niche};\nif (wide) spec.format = 'wide';\nresults.push({json: spec});\n});\nreturn results;\n"
+    }
+   },
+   {
+    "id": "5840489e-e18c-4845-8508-0c325276b20e",
+    "name": "Add to render queue",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     2400,
+     0
+    ],
+    "parameters": {
+     "method": "POST",
+     "url": "http://host.docker.internal:8300/queue",
+     "sendBody": true,
+     "specifyBody": "json",
+     "jsonBody": "={{ JSON.stringify($json) }}",
+     "options": {
+      "timeout": 30000
+     }
+    }
+   },
+   {
+    "id": "d9a172ab-153d-4549-b20e-ed5610270310",
+    "name": "Manual test trigger",
+    "type": "n8n-nodes-base.executeWorkflowTrigger",
+    "typeVersion": 1,
+    "position": [
+     0,
+     200
+    ],
+    "parameters": {}
+   }
+  ],
+  "connections": {
+   "Gemini: choose 6 topics (prompt)": {
+    "main": [
+     [
+      {
+       "node": "Gemini: choose 6 topics",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Gemini: write script (prompt)": {
+    "main": [
+     [
+      {
+       "node": "Gemini: write script",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Research trigger 01:00": {
+    "main": [
+     [
+      {
+       "node": "Pick niche",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Manual test trigger": {
+    "main": [
+     [
+      {
+       "node": "Pick niche",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Pick niche": {
+    "main": [
+     [
+      {
+       "node": "Wikipedia most read",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Wikipedia most read": {
+    "main": [
+     [
+      {
+       "node": "Hacker News front page",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Hacker News front page": {
+    "main": [
+     [
+      {
+       "node": "Google Trends",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Google Trends": {
+    "main": [
+     [
+      {
+       "node": "Build candidate list",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Build candidate list": {
+    "main": [
+     [
+      {
+       "node": "Gemini: choose 6 topics (prompt)",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Gemini: choose 6 topics": {
+    "main": [
+     [
+      {
+       "node": "Split topics",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Split topics": {
+    "main": [
+     [
+      {
+       "node": "Wikipedia extract",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Wikipedia extract": {
+    "main": [
+     [
+      {
+       "node": "Attach extract",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Attach extract": {
+    "main": [
+     [
+      {
+       "node": "Gemini: write script (prompt)",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Gemini: write script": {
+    "main": [
+     [
+      {
+       "node": "Validate and build spec",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Validate and build spec": {
+    "main": [
+     [
+      {
+       "node": "Add to render queue",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1"
+  },
+  "active": false,
+  "id": "ytdailytrends0001"
+ }
+]
